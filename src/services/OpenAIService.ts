@@ -12,7 +12,6 @@ export class OpenAIService implements ImageAnalysisService {
   }
 
   async analyze(imageBase64: string, modelName?: string): Promise<AnalysisResult> {
-
     if (!modelName) {
       modelName = this.model;
     }
@@ -20,6 +19,10 @@ export class OpenAIService implements ImageAnalysisService {
     const response = await this.client.chat.completions.create({
       model: modelName,
       messages: [
+        {
+          role: 'system',
+          content: models.system_prompt
+        },
         {
           role: 'user',
           content: [
@@ -34,7 +37,7 @@ export class OpenAIService implements ImageAnalysisService {
 
     return {
       description: response.choices[0]?.message?.content || '解析に失敗しました',
-      model: this.model,
+      model: modelName,
       provider: this.getProvider(),
     };
   }

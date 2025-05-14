@@ -18,7 +18,7 @@ export class GeminiService implements ImageAnalysisService {
 
     const model = this.client.getGenerativeModel({ model: modelName });
     
-    const prompt = '画像の内容を手順書用の説明文として生成してください。';
+    const prompt = models.system_prompt;
     const image = {
       inlineData: {
         data: imageBase64,
