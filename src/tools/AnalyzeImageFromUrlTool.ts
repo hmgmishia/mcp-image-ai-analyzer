@@ -31,6 +31,10 @@ export class AnalyzeImageFromUrlTool implements Tool {
         modelName: {
           type: "string",
           description: "使用するモデル名（オプション）"
+        },
+        prompt: {
+          type: "string",
+          description: "カスタムプロンプト（オプション）"
         }
       }
     };
@@ -38,7 +42,7 @@ export class AnalyzeImageFromUrlTool implements Tool {
 
   async execute(request: { params: { arguments: any } }): Promise<any> {
     try {
-      const { imageUrl, provider = "gemini", modelName } = request.params.arguments;
+      const { imageUrl, provider = "gemini", modelName, prompt } = request.params.arguments;
       
       const imageBase64 = await this.imageConverter.fromUrl(imageUrl);
       
@@ -47,7 +51,7 @@ export class AnalyzeImageFromUrlTool implements Tool {
         throw new Error(`Provider ${provider} not configured`);
       }
 
-      const result = await service.analyze(imageBase64, modelName);
+      const result = await service.analyze(imageBase64, modelName, prompt);
 
       return {
         content: [

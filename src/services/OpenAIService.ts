@@ -11,9 +11,13 @@ export class OpenAIService implements ImageAnalysisService {
     this.model = modelName || models.openai[0];
   }
 
-  async analyze(imageBase64: string, modelName?: string): Promise<AnalysisResult> {
+  async analyze(imageBase64: string, modelName?: string, prompt?: string): Promise<AnalysisResult> {
     if (!modelName) {
       modelName = this.model;
+    }
+
+    if (!prompt) {
+      prompt = "";
     }
 
     const response = await this.client.chat.completions.create({
@@ -26,7 +30,7 @@ export class OpenAIService implements ImageAnalysisService {
         {
           role: 'user',
           content: [
-            { type: 'text', text: '画像の内容を手順書用の説明文として生成してください。' },
+            { type: 'text', text: prompt },
             { type: 'image_url', image_url: { url: `data:image/jpeg;base64,${imageBase64}` } }
           ],
         },

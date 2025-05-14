@@ -11,14 +11,14 @@ export class GeminiService implements ImageAnalysisService {
     this.model = modelName || models.gemini[0];
   }
 
-  async analyze(imageBase64: string, modelName?: string): Promise<AnalysisResult> {
+  async analyze(imageBase64: string, modelName?: string, prompt?: string): Promise<AnalysisResult> {
     if (!modelName) {
       modelName = this.model;
     }
 
     const model = this.client.getGenerativeModel({ model: modelName });
     
-    const prompt = models.system_prompt;
+    const userPrompt = prompt || models.system_prompt;
     const image = {
       inlineData: {
         data: imageBase64,
@@ -26,7 +26,7 @@ export class GeminiService implements ImageAnalysisService {
       },
     };
 
-    const result = await model.generateContent([prompt, image]);
+    const result = await model.generateContent([userPrompt, image]);
     const response = await result.response;
     
     return {
