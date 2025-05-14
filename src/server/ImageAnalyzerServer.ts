@@ -3,13 +3,16 @@ import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js"
 import { OpenAIService } from "../services/OpenAIService.js";
 import { GeminiService } from "../services/GeminiService.js";
 import { ImageConverter } from "../services/ImageConverter.js";
-import { ImageAnalysisService } from "../types.js";
+import { ImageAnalysisService, Tool } from "../types.js";
+import { AnalyzeImageFromUrlTool } from "../tools/AnalyzeImageFromUrlTool.js";
+import { AnalyzeImageFromPathTool } from "../tools/AnalyzeImageFromPathTool.js";
 import { ListToolsRequestSchema, CallToolRequestSchema } from "@modelcontextprotocol/sdk/types.js";
 
 export class ImageAnalyzerServer {
   private server: Server;
   private services: Map<string, ImageAnalysisService>;
   private imageConverter: ImageConverter;
+  private tools: Map<string, Tool>;
 
   constructor() {
     this.server = new Server(
@@ -25,8 +28,11 @@ export class ImageAnalyzerServer {
     );
     this.services = new Map();
     this.imageConverter = new ImageConverter();
+    this.tools = new Map();
+    
     this.initializeServices();
-    this.registerTools();
+    this.initializeTools();
+    this.registerHandlers();
   }
 
   private initializeServices(): void {
@@ -38,101 +44,36 @@ export class ImageAnalyzerServer {
     }
   }
 
-  private registerTools(): void {
+  private initializeTools(): void {
+    const tools: Tool[] = [
+      new AnalyzeImageFromUrlTool(this.services, this.imageConverter),
+      new AnalyzeImageFromPathTool(this.services, this.imageConverter)
+    ];
+
+    for (const tool of tools) {
+      this.tools.set(tool.getName(), tool);
+    }
+  }
+
+  private registerHandlers(): void {
     this.server.setRequestHandler(ListToolsRequestSchema, async () => {
       return {
-        tools: [
-          {
-            name: "analyze_image_from_url",
-            description: "URLから画像を取得して解析し、手順書用の説明文を生成します",
-            inputSchema: {
-              type: "object",
-              required: ["imageUrl"],
-              properties: {
-                imageUrl: {
-                  type: "string",
-                  description: "解析する画像のURL"
-                },
-                provider: {
-                  type: "string",
-                  description: "使用するプロバイダー（openai または gemini デフォルトは gemini）"
-                },
-                modelName: {
-                  type: "string",
-                  description: "使用するモデル名（オプション）"
-                }
-              }
-            }
-          },
-          {
-            name: "analyze_image_from_path",
-            description: "ローカルファイルパスから画像を読み込んで解析し、手順書用の説明文を生成します",
-            inputSchema: {
-              type: "object",
-              required: ["imagePath"],
-              properties: {
-                imagePath: {
-                  type: "string",
-                  description: "解析する画像のファイルパス"
-                },
-                provider: {
-                  type: "string",
-                  description: "使用するプロバイダー（openai または gemini デフォルトは gemini）"
-                },
-                modelName: {
-                  type: "string",
-                  description: "使用するモデル名（オプション）"
-                }
-              }
-            }
-          }
-        ]
+        tools: Array.from(this.tools.values()).map(tool => ({
+          name: tool.getName(),
+          description: tool.getDescription(),
+          inputSchema: tool.getInputSchema()
+        }))
       };
     });
 
     this.server.setRequestHandler(CallToolRequestSchema, async (request: any) => {
       try {
-        let { provider, modelName } = request.params.arguments as {
-          provider?: string;
-          modelName?: string;
-        };
-
-        if (!provider) {
-            provider = "gemini";
+        const tool = this.tools.get(request.params.name);
+        if (!tool) {
+          throw new Error(`Unknown tool: ${request.params.name}`);
         }
 
-        let imageBase64: string;
-
-        switch (request.params.name) {
-          case "analyze_image_from_url": {
-            const { imageUrl } = request.params.arguments as { imageUrl: string };
-            imageBase64 = await this.imageConverter.fromUrl(imageUrl);
-            break;
-          }
-          case "analyze_image_from_path": {
-            const { imagePath } = request.params.arguments as { imagePath: string };
-            imageBase64 = await this.imageConverter.fromPath(imagePath);
-            break;
-          }
-          default:
-            throw new Error("Unknown tool");
-        }
-
-        const service = this.services.get(provider.toLowerCase());
-        if (!service) {
-          throw new Error(`Provider ${provider} not configured`);
-        }
-
-        const result = await service.analyze(imageBase64, modelName);
-
-        return {
-          content: [
-            {
-              type: "text",
-              text: JSON.stringify(result)
-            }
-          ]
-        };
+        return await tool.execute(request);
       } catch (error) {
         console.error("Error:", error);
         return {
