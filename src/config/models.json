@@ -1,4 +1,4 @@
 {
   "openai": ["gpt-4o-mini"],
-  "gemini": ["gemini-2.O-flash"]
+  "gemini": ["gemini-2.O-flash-001"]
 } 

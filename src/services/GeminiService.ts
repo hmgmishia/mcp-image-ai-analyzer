@@ -11,8 +11,12 @@ export class GeminiService implements ImageAnalysisService {
     this.model = modelName || models.gemini[0];
   }
 
-  async analyze(imageBase64: string): Promise<AnalysisResult> {
-    const model = this.client.getGenerativeModel({ model: this.model });
+  async analyze(imageBase64: string, modelName?: string): Promise<AnalysisResult> {
+    if (!modelName) {
+      modelName = this.model;
+    }
+
+    const model = this.client.getGenerativeModel({ model: modelName });
     
     const prompt = '画像の内容を手順書用の説明文として生成してください。';
     const image = {
@@ -27,7 +31,7 @@ export class GeminiService implements ImageAnalysisService {
     
     return {
       description: response.text() || '解析に失敗しました',
-      model: this.model,
+      model: modelName,
       provider: this.getProvider(),
     };
   }
