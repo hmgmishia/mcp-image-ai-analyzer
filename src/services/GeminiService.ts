@@ -1,0 +1,42 @@
+import { ImageAnalysisService, AnalysisResult } from '../types.js';
+import { GoogleGenerativeAI } from '@google/generative-ai';
+import models from '../config/models.json' with { type: "json" };
+
+export class GeminiService implements ImageAnalysisService {
+  private client: GoogleGenerativeAI;
+  private model: string;
+
+  constructor(apiKey: string, modelName?: string) {
+    this.client = new GoogleGenerativeAI(apiKey);
+    this.model = modelName || models.gemini[0];
+  }
+
+  async analyze(imageBase64: string): Promise<AnalysisResult> {
+    const model = this.client.getGenerativeModel({ model: this.model });
+    
+    const prompt = '画像の内容を手順書用の説明文として生成してください。';
+    const image = {
+      inlineData: {
+        data: imageBase64,
+        mimeType: 'image/jpeg',
+      },
+    };
+
+    const result = await model.generateContent([prompt, image]);
+    const response = await result.response;
+    
+    return {
+      description: response.text() || '解析に失敗しました',
+      model: this.model,
+      provider: this.getProvider(),
+    };
+  }
+
+  getProvider(): string {
+    return 'Google';
+  }
+
+  getModel(): string {
+    return this.model;
+  }
+} 
