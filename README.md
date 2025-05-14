@@ -1,83 +1,88 @@
-# MCP Image AI Analyzer
+# mcp-image-ai-analyzer
 
-画像を解析し、手順書用の説明文を生成するMCPサーバーです。OpenAI（GPT-4 Vision）とGoogle Gemini Proの両方のAIを使用して画像解析を行うことができます。
+画像を解析し、手順書用の説明文を生成するMCPサーバーです。OpenAIとGoogle Geminiの両方のAIを使用して画像解析を行うことができます。
 
-## セットアップ
+## 機能
 
-1. 必要な依存関係をインストールします：
+* 画像URLまたはローカルファイルパスから画像を解析
+* OpenAIとGoogle Geminiの両方のAIモデルをサポート
+* 手順書に適した説明文の自動生成
+* エラーハンドリングとログ機能
+
+## インストール
+
 ```bash
+# リポジトリをクローン
+git clone https://github.com/yourusername/mcp-image-ai-analyzer.git
+cd mcp-image-ai-analyzer
+
+# 依存パッケージのインストール
 npm install
+
+# TypeScriptのコンパイル
+npm run build
 ```
 
-2. 環境変数を設定します：
-- `.env.example`ファイルを`.env`にコピーします
-- 必要なAPI keyを設定します：
-  - `OPENAI_API_KEY`: OpenAIのAPIキー
-  - `GEMINI_API_KEY`: Google GeminiのAPIキー
-  - `PORT`: サーバーのポート番号（デフォルト: 3000）
-  - `OPENAI_MODEL`: OpenAIのモデル名（デフォルト: gpt-4-vision-preview）
-  - `GEMINI_MODEL`: Geminiのモデル名（デフォルト: gemini-pro-vision）
+## MCPサーバーの設定
 
-3. サーバーを起動します：
-```bash
-npm run dev
+### Claude Desktop Appの場合
+
+設定ファイルの場所：
+- macOS: `~/Library/Application Support/Claude/claude_desktop_config.json`
+- Windows: `%APPDATA%/Claude/claude_desktop_config.json`
+
+以下の設定を追加してください：
+
+```json
+{
+  "mcpServers": {
+    "ai-analysis": {
+      "command": "node",
+      "args": ["/path/to/mcp-image-ai-analyzer/build/index.js"],
+      "env": {
+        "OPENAI_API_KEY": "your_openai_api_key",
+        "GOOGLE_API_KEY": "your_google_api_key"
+      }
+    }
+  }
+}
 ```
 
-## MCPサーバーの設定手順
+※ `/path/to/mcp-image-ai-analyzer` は実際のパスに置き換えてください。
 
-1. MCPサーバーのインストール：
-```bash
-npm install -g @agentdesk/mcp
-```
+## 使用可能なツール
 
-2. MCPサーバーの初期化：
-```bash
-mcp init
-```
+### 1. URLから画像を解析
+- ツール名: `analyze_image_from_url`
+- 説明: URLから画像を取得して解析し、手順書用の説明文を生成します
+- パラメータ:
+  - `imageUrl`: 解析する画像のURL（必須）
+  - `provider`: 使用するプロバイダー（"openai" または "gemini"、デフォルトは "gemini"）
+  - `modelName`: 使用するモデル名（オプション）
 
-3. プロジェクトディレクトリで以下のコマンドを実行してMCPの設定を行います：
-```bash
-mcp config set name "image-ai-analyzer"
-mcp config set description "画像解析AIを使用して手順書用の説明文を生成するMCPサーバー"
-```
+### 2. ローカルファイルから画像を解析
+- ツール名: `analyze_image_from_path`
+- 説明: ローカルファイルパスから画像を読み込んで解析し、手順書用の説明文を生成します
+- パラメータ:
+  - `imagePath`: 解析する画像のファイルパス（必須）
+  - `provider`: 使用するプロバイダー（"openai" または "gemini"、デフォルトは "gemini"）
+  - `modelName`: 使用するモデル名（オプション）
 
-4. サービスの登録：
-```bash
-mcp service add image-analyzer ./src/index.ts
-```
+## 使用可能なモデル
 
-5. MCPサーバーの起動：
-```bash
-mcp start
-```
+### OpenAI
+- gpt-4o-mini
 
-6. ログの確認：
-```bash
-mcp logs
-```
-
-## API エンドポイント
-
-### OpenAI Vision を使用した画像解析
-```bash
-POST /analyze/openai
-Content-Type: multipart/form-data
-Body: image=@画像ファイル
-```
-
-### Google Gemini を使用した画像解析
-```bash
-POST /analyze/gemini
-Content-Type: multipart/form-data
-Body: image=@画像ファイル
-```
+### Google Gemini
+- gemini-2.0-flash-001
 
 ## レスポンス形式
 
 ```json
 {
   "description": "画像の説明文",
-  "model": "使用されたモデル名"
+  "model": "使用されたモデル名",
+  "provider": "使用されたプロバイダー名"
 }
 ```
 
@@ -85,17 +90,7 @@ Body: image=@画像ファイル
 
 ```json
 {
-  "error": "エラーメッセージ"
+  "error": "Internal server error",
+  "details": "エラーの詳細メッセージ"
 }
 ```
-
-## 使用可能なモデル
-
-### OpenAI
-- gpt-4-vision-preview (デフォルト)
-- その他のVision対応モデル
-
-### Google Gemini
-- gemini-pro-vision (デフォルト)
-- gemini-2.0-flash
-- その他のVision対応モデル
