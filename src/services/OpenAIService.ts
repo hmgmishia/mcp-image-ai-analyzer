@@ -47,9 +47,7 @@ export class OpenAIService implements ImageAnalysisService {
             { type: 'image_url', image_url: { url: `data:image/jpeg;base64,${imageBase64}` } }
           ],
         },
-      ],
-      max_tokens: 1000,
-      temperature: 0.7
+      ]
     });
 
     return {
