@@ -1,5 +1,5 @@
 import { ImageAnalysisService, AnalysisResult } from '../types.js';
-import { GoogleGenAI } from '@google/genai';
+import { createPartFromUri, createUserContent, GoogleGenAI } from '@google/genai';
 import models from '../config/models.json' with { type: "json" };
 
 export class GeminiService implements ImageAnalysisService {
@@ -7,7 +7,7 @@ export class GeminiService implements ImageAnalysisService {
   private model: string;
 
   constructor(apiKey: string, modelName?: string) {
-    this.client = new GoogleGenAI(apiKey);
+    this.client = new GoogleGenAI({apiKey: apiKey});
     this.model = modelName || models.gemini[0];
   }
 
@@ -16,41 +16,46 @@ export class GeminiService implements ImageAnalysisService {
       modelName = this.model;
     }
 
-    const userPrompt = prompt || models.system_prompt;
-    const image = {
-      inlineData: {
-        data: imageBase64,
-        mimeType: 'image/jpeg',
-      },
-    };
+    const userPrompt = prompt || models.system_prompt || "画像の内容を説明してください";
 
     let result;
-    if (thinking) {
 
-      const config = {
-        thinkingConfig: {
-          thinkingBudget: 1000,
-        },
-      };
+    // blob を作成
+    const blob = new Blob([imageBase64], { type: 'image/jpeg' });
+
+    const organ = await this.client.files.upload({
+      file: blob
+    });
+
+    if (!organ.uri || !organ.mimeType) {
+      throw new Error('Failed to upload image');
+    }
+
+    if (thinking) {
 
       result = await this.client.models.generateContent({
         model: modelName,
-        contens: userPrompt,
-        image, 
-        config
+        contents: createUserContent([
+          userPrompt, 
+          createPartFromUri(organ.uri, organ.mimeType)]),
+        config: {
+          thinkingConfig: {
+            thinkingBudget: 1000,
+          },
+        }
       });
+
     }else{
       result = await this.client.models.generateContent({
         model: modelName,
-        contens: userPrompt,
-        image
+        contents: createUserContent([
+          userPrompt, 
+          createPartFromUri(organ.uri, organ.mimeType)])
       });
     }
     
-    const response = await result.response;
-    
     return {
-      description: response.text() || '解析に失敗しました',
+      description: result.text || '解析に失敗しました',
       model: modelName,
       provider: this.getProvider()
     };
