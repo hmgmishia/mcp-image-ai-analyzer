@@ -1,4 +1,4 @@
-import { Tool, ImageAnalysisService } from "../types.js";
+import { Tool, ImageAnalysisService, AnalysisOptions } from "../types.js";
 import { ImageConverter } from "../services/ImageConverter.js";
 
 export class AnalyzeImageFromUrlTool implements Tool {
@@ -39,6 +39,14 @@ export class AnalyzeImageFromUrlTool implements Tool {
         thinking: {
           type: "boolean",
           description: "思考プロセスを表示するかどうか（オプション、デフォルトはfalse）"
+        },
+        maxTokens: {
+          type: "number",
+          description: "生成するトークンの最大数（オプション）"
+        },
+        temperature: {
+          type: "number",
+          description: "生成の多様性を制御するパラメータ（オプション）"
         }
       }
     };
@@ -46,16 +54,25 @@ export class AnalyzeImageFromUrlTool implements Tool {
 
   async execute(request: { params: { arguments: any } }): Promise<any> {
     try {
-      const { imageUrl, provider = "gemini", modelName, prompt, thinking = false } = request.params.arguments;
+      const { 
+        imageUrl, 
+        provider = "gemini", 
+        ...analysisOptions 
+      } = request.params.arguments;
       
-      const imageBase64 = await this.imageConverter.fromUrl(imageUrl);
+      const imageBuffer = await this.imageConverter.fromUrl(imageUrl);
       
       const service = this.services.get(provider.toLowerCase());
       if (!service) {
-        throw new Error(`Provider ${provider} not configured`);
+        throw new Error(`プロバイダー「${provider}」は設定されていません`);
       }
 
-      const result = await service.analyze(imageBase64, modelName, prompt, thinking);
+      // AnalysisOptionsオブジェクトを作成
+      const options: AnalysisOptions = {
+        ...analysisOptions
+      };
+
+      const result = await service.analyze(imageBuffer, options);
 
       return {
         content: [
@@ -72,8 +89,8 @@ export class AnalyzeImageFromUrlTool implements Tool {
           {
             type: "text",
             text: JSON.stringify({
-              error: "Internal server error",
-              details: error instanceof Error ? error.message : "Unknown error"
+              error: "サーバー内部エラー",
+              details: error instanceof Error ? error.message : "不明なエラー"
             })
           }
         ],
