@@ -1,23 +1,21 @@
 import { ImageAnalysisService, AnalysisResult } from '../types.js';
-import { GoogleGenerativeAI } from '@google/generative-ai';
+import { GoogleGenAI } from '@google/genai';
 import models from '../config/models.json' with { type: "json" };
 
 export class GeminiService implements ImageAnalysisService {
-  private client: GoogleGenerativeAI;
+  private client: GoogleGenAI;
   private model: string;
 
   constructor(apiKey: string, modelName?: string) {
-    this.client = new GoogleGenerativeAI(apiKey);
+    this.client = new GoogleGenAI(apiKey);
     this.model = modelName || models.gemini[0];
   }
 
-  async analyze(imageBase64: string, modelName?: string, prompt?: string): Promise<AnalysisResult> {
+  async analyze(imageBase64: string, modelName?: string, prompt?: string, thinking?: boolean): Promise<AnalysisResult> {
     if (!modelName) {
       modelName = this.model;
     }
 
-    const model = this.client.getGenerativeModel({ model: modelName });
-    
     const userPrompt = prompt || models.system_prompt;
     const image = {
       inlineData: {
@@ -26,13 +24,35 @@ export class GeminiService implements ImageAnalysisService {
       },
     };
 
-    const result = await model.generateContent([userPrompt, image]);
+    let result;
+    if (thinking) {
+
+      const config = {
+        thinkingConfig: {
+          thinkingBudget: 1000,
+        },
+      };
+
+      result = await this.client.models.generateContent({
+        model: modelName,
+        contens: userPrompt,
+        image, 
+        config
+      });
+    }else{
+      result = await this.client.models.generateContent({
+        model: modelName,
+        contens: userPrompt,
+        image
+      });
+    }
+    
     const response = await result.response;
     
     return {
       description: response.text() || '解析に失敗しました',
       model: modelName,
-      provider: this.getProvider(),
+      provider: this.getProvider()
     };
   }
 

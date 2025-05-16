@@ -8,6 +8,7 @@
 * OpenAIとGoogle Geminiの両方のAIモデルをサポート
 * 手順書に適した説明文の自動生成
 * エラーハンドリングとログ機能
+* AIの思考プロセスの可視化機能
 
 ## インストール
 
@@ -59,6 +60,8 @@ npm run build
   - `imageUrl`: 解析する画像のURL（必須）
   - `provider`: 使用するプロバイダー（"openai" または "gemini"、デフォルトは "gemini"）
   - `modelName`: 使用するモデル名（オプション）
+  - `prompt`: カスタムプロンプト（オプション）
+  - `thinking`: 思考プロセスを表示するかどうか（オプション、デフォルトはfalse）
 
 ### 2. ローカルファイルから画像を解析
 - ツール名: `analyze_image_from_path`
@@ -67,11 +70,14 @@ npm run build
   - `imagePath`: 解析する画像のファイルパス（必須）
   - `provider`: 使用するプロバイダー（"openai" または "gemini"、デフォルトは "gemini"）
   - `modelName`: 使用するモデル名（オプション）
+  - `prompt`: カスタムプロンプト（オプション）
+  - `thinking`: 思考プロセスを表示するかどうか（オプション、デフォルトはfalse）
 
 ## 使用可能なモデル
 
 ### OpenAI
-- gpt-4o-mini
+- gpt-4o-mini（説明文生成用）
+- gpt-o3-mini（思考プロセス用）
 
 ### Google Gemini
 - gemini-2.0-flash-001
@@ -82,7 +88,8 @@ npm run build
 {
   "description": "画像の説明文",
   "model": "使用されたモデル名",
-  "provider": "使用されたプロバイダー名"
+  "provider": "使用されたプロバイダー名",
+  "thinking": "思考プロセスの説明（thinkingがtrueの場合のみ）"
 }
 ```
 

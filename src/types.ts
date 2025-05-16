@@ -5,7 +5,7 @@ export interface AnalysisResult {
 }
 
 export interface ImageAnalysisService {
-  analyze(imageBase64: string, modelName?: string, prompt?: string): Promise<AnalysisResult>;
+  analyze(imageBase64: string, modelName?: string, prompt?: string, thinking?: boolean): Promise<AnalysisResult>;
   getProvider(): string;
   getModel(): string;
 }

@@ -35,6 +35,10 @@ export class AnalyzeImageFromUrlTool implements Tool {
         prompt: {
           type: "string",
           description: "カスタムプロンプト（オプション）"
+        },
+        thinking: {
+          type: "boolean",
+          description: "思考プロセスを表示するかどうか（オプション、デフォルトはfalse）"
         }
       }
     };
@@ -42,7 +46,7 @@ export class AnalyzeImageFromUrlTool implements Tool {
 
   async execute(request: { params: { arguments: any } }): Promise<any> {
     try {
-      const { imageUrl, provider = "gemini", modelName, prompt } = request.params.arguments;
+      const { imageUrl, provider = "gemini", modelName, prompt, thinking = false } = request.params.arguments;
       
       const imageBase64 = await this.imageConverter.fromUrl(imageUrl);
       
@@ -51,7 +55,7 @@ export class AnalyzeImageFromUrlTool implements Tool {
         throw new Error(`Provider ${provider} not configured`);
       }
 
-      const result = await service.analyze(imageBase64, modelName, prompt);
+      const result = await service.analyze(imageBase64, modelName, prompt, thinking);
 
       return {
         content: [

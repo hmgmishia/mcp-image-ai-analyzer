@@ -5,20 +5,35 @@ import models from '../config/models.json' with { type: "json" };
 export class OpenAIService implements ImageAnalysisService {
   private client: OpenAI;
   private model: string;
+  private thinkingModel: string;
 
   constructor(apiKey: string, modelName?: string) {
     this.client = new OpenAI({ apiKey });
     this.model = modelName || models.openai[0];
+    this.thinkingModel = models["openai-thinking"][0];
   }
 
-  async analyze(imageBase64: string, modelName?: string, prompt?: string): Promise<AnalysisResult> {
+  async analyze(imageBase64: string, modelName?: string, prompt?: string, thinking?: boolean): Promise<AnalysisResult> {
     if (!modelName) {
-      modelName = this.model;
+      if (thinking) {
+        modelName = this.thinkingModel;
+      } else {
+        modelName = this.model;
+      }
+    }
+
+    if (thinking) {
+      // modelName が openai-thinking にない場合 thinkingmodel にする
+      if (!models["openai-thinking"].includes(modelName)) {
+        modelName = this.thinkingModel;
+      }
     }
 
     if (!prompt) {
       prompt = "";
     }
+
+    let thinkingResult = "";
 
     const response = await this.client.chat.completions.create({
       model: modelName,
@@ -42,7 +57,7 @@ export class OpenAIService implements ImageAnalysisService {
     return {
       description: response.choices[0]?.message?.content || '解析に失敗しました',
       model: modelName,
-      provider: this.getProvider(),
+      provider: this.getProvider()
     };
   }
 
