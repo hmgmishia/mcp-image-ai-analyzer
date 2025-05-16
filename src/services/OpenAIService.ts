@@ -5,18 +5,16 @@ import models from '../config/models.json' with { type: "json" };
 export class OpenAIService implements ImageAnalysisService {
   private client: OpenAI;
   private model: string;
-  private thinkingModel: string;
 
   constructor(apiKey: string, modelName?: string) {
     this.client = new OpenAI({ apiKey });
     this.model = modelName || models.openai[0];
-    this.thinkingModel = models["openai-thinking"][0];
   }
 
-  async analyze(imageBase64: string, modelName?: string, prompt?: string, thinking?: boolean): Promise<AnalysisResult> {
+  async analyze(imageBuffer: Buffer, modelName?: string, prompt?: string, thinking?: boolean): Promise<AnalysisResult> {
     if (!modelName) {
       if (thinking) {
-        modelName = this.thinkingModel;
+        modelName = models["openai-thinking"][0];
       } else {
         modelName = this.model;
       }
@@ -25,13 +23,15 @@ export class OpenAIService implements ImageAnalysisService {
     if (thinking) {
       // modelName が openai-thinking にない場合 thinkingmodel にする
       if (!models["openai-thinking"].includes(modelName)) {
-        modelName = this.thinkingModel;
+        modelName = models["openai-thinking"][0];
       }
     }
 
     if (!prompt) {
       prompt = "";
     }
+
+    const imageBase64 = imageBuffer.toString('base64');
 
     const response = await this.client.chat.completions.create({
       model: modelName,
@@ -47,7 +47,9 @@ export class OpenAIService implements ImageAnalysisService {
             { type: 'image_url', image_url: { url: `data:image/jpeg;base64,${imageBase64}` } }
           ],
         },
-      ]
+      ],
+      max_tokens: 1000,
+      temperature: 0.7
     });
 
     return {

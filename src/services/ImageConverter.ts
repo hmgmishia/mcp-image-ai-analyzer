@@ -24,7 +24,7 @@ export class ImageConverter {
     }
   }
 
-  async fromPath(imagePath: string): Promise<string> {
+  async fromPath(imagePath: string): Promise<Buffer> {
     try {
       // パスの正規化と検証
       const normalizedPath = path.normalize(imagePath);
@@ -34,7 +34,7 @@ export class ImageConverter {
 
       const buffer = await fs.readFile(normalizedPath);
       await this.validateImage(buffer);
-      return buffer.toString('base64');
+      return buffer;
     } catch (error) {
       if (error instanceof Error) {
         throw new Error(`Failed to process image from path: ${error.message}`);
@@ -43,7 +43,7 @@ export class ImageConverter {
     }
   }
 
-  async fromUrl(imageUrl: string): Promise<string> {
+  async fromUrl(imageUrl: string): Promise<Buffer> {
     try {
       // URLの検証
       const url = new URL(imageUrl);
@@ -77,7 +77,7 @@ export class ImageConverter {
             const buffer = Buffer.concat(chunks);
             try {
               await this.validateImage(buffer);
-              resolve(buffer.toString('base64'));
+              resolve(buffer);
             } catch (error) {
               reject(error);
             }

@@ -11,7 +11,7 @@ export class GeminiService implements ImageAnalysisService {
     this.model = modelName || models.gemini[0];
   }
 
-  async analyze(imageBase64: string, modelName?: string, prompt?: string, thinking?: boolean): Promise<AnalysisResult> {
+  async analyze(imageBuffer: Buffer, modelName?: string, prompt?: string, thinking?: boolean): Promise<AnalysisResult> {
     if (!modelName) {
       if (thinking) {
         modelName = models["gemini-thinking"][0];
@@ -25,10 +25,13 @@ export class GeminiService implements ImageAnalysisService {
     let result;
 
     // blob を作成
-    const blob = new Blob([imageBase64], { type: 'image/jpeg' });
+    const blob = new Blob([imageBuffer], { type: 'image/jpeg' });
 
     const organ = await this.client.files.upload({
-      file: blob
+      file: blob,
+      config: {
+        mimeType: 'image/jpeg'
+      }
     });
 
     if (!organ.uri || !organ.mimeType) {
@@ -36,7 +39,6 @@ export class GeminiService implements ImageAnalysisService {
     }
 
     if (thinking) {
-
       result = await this.client.models.generateContent({
         model: modelName,
         contents: createUserContent([
@@ -48,7 +50,6 @@ export class GeminiService implements ImageAnalysisService {
           },
         }
       });
-
     }else{
       result = await this.client.models.generateContent({
         model: modelName,
