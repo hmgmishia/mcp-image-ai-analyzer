@@ -13,7 +13,11 @@ export class GeminiService implements ImageAnalysisService {
 
   async analyze(imageBase64: string, modelName?: string, prompt?: string, thinking?: boolean): Promise<AnalysisResult> {
     if (!modelName) {
-      modelName = this.model;
+      if (thinking) {
+        modelName = models["gemini-thinking"][0];
+      }else{
+        modelName = this.model;
+      }
     }
 
     const userPrompt = prompt || models.system_prompt || "画像の内容を説明してください";
