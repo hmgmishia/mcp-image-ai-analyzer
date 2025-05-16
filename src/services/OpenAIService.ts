@@ -33,8 +33,6 @@ export class OpenAIService implements ImageAnalysisService {
       prompt = "";
     }
 
-    let thinkingResult = "";
-
     const response = await this.client.chat.completions.create({
       model: modelName,
       messages: [
