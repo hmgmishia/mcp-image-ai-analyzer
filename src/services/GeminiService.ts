@@ -1,5 +1,5 @@
 import { ImageAnalysisService, AnalysisResult } from '../types.js';
-import { createPartFromUri, createUserContent, GoogleGenAI } from '@google/genai';
+import { createPartFromUri, createUserContent, GoogleGenAI, Part } from '@google/genai';
 import models from '../config/models.json' with { type: "json" };
 
 export class GeminiService implements ImageAnalysisService {
@@ -22,42 +22,52 @@ export class GeminiService implements ImageAnalysisService {
 
     const userPrompt = prompt || models.system_prompt || "画像の内容を説明してください";
 
+    let params: {
+      model: string;
+      contents: any;
+      config: {
+        thinkingConfig?: {
+          thinkingBudget: number;
+        };
+      };
+    } = {
+      model: modelName,
+      contents: [],
+      config: {}
+    };
+    let contents: any[] = [userPrompt];
     let result;
 
-    // blob を作成
-    const blob = new Blob([imageBuffer], { type: 'image/jpeg' });
+    if (imageBuffer) {
+      const blob = new Blob([imageBuffer], { type: 'image/jpeg' });
 
-    const organ = await this.client.files.upload({
-      file: blob,
-      config: {
-        mimeType: 'image/jpeg'
-      }
-    });
-
-    if (!organ.uri || !organ.mimeType) {
-      throw new Error('Failed to upload image');
-    }
-
-    if (thinking) {
-      result = await this.client.models.generateContent({
-        model: modelName,
-        contents: createUserContent([
-          userPrompt, 
-          createPartFromUri(organ.uri, organ.mimeType)]),
+      const organ = await this.client.files.upload({
+        file: blob,
         config: {
-          thinkingConfig: {
-            thinkingBudget: 1000,
-          },
+          mimeType: 'image/jpeg'
         }
       });
-    }else{
-      result = await this.client.models.generateContent({
-        model: modelName,
-        contents: createUserContent([
-          userPrompt, 
-          createPartFromUri(organ.uri, organ.mimeType)])
-      });
+
+      if (!organ.uri || !organ.mimeType) {
+        throw new Error('Failed to upload image');
+      }
+
+      contents.push(createPartFromUri(organ.uri, organ.mimeType));
     }
+
+    if (thinking)
+    {
+      params.config = 
+      {
+        thinkingConfig: {
+          thinkingBudget: 1000,
+        }
+      };
+    }
+
+    params.contents = createUserContent(contents);
+
+    result = await this.client.models.generateContent(params);
     
     return {
       description: result.text || '解析に失敗しました',
